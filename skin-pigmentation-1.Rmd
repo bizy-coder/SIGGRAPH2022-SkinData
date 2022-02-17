@@ -25,7 +25,7 @@ end = 99999
 # 16 - 46 are wavelengths
 # 48 is MID
 
-SkinDF <- SkinData[start:end , 16:36]
+SkinDF <- SkinData[SkinData$Loc. != "H", ][start:end , 16:36]
 
 
 df <- melt(SkinDF) # Turn the wavelengths into a long format
