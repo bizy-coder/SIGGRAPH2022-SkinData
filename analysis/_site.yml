@@ -1,7 +1,7 @@
 name: "SIGGRAPH2022-SkinData"
 output_dir: ../docs
 navbar:
-  title: "SIGGRAPH2022-SkinData"
+  title: "SIGGRAPH2022 SkinData"
   left:
   - text: Home
     href: index.html
