@@ -1,7 +1,7 @@
-name: "SIGGRAPH2022-SkinData"
+name: SIGGRAPH2022-SkinData
 output_dir: ../docs
 navbar:
-  title: "SIGGRAPH2022 SkinData"
+  title: SIGGRAPH2022 SkinData
   left:
   - text: Home
     href: index.html
@@ -11,6 +11,10 @@ navbar:
     href: license.html
   - text: Reflectance
     href: reflectance.html
+  right:
+  - icon: fab fa-github
+    text: Source code
+    href: https://github.com/bizkid123/SIGGRAPH2022-SkinData
 output:
   workflowr::wflow_html:
     toc: yes
