@@ -1,0 +1,93 @@
+---
+title: "Skin Reflectance"
+author: "Tina Lasisi"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  workflowr::wflow_html:
+    toc: yes
+    number_sections: yes
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+library(tidyverse)
+library(knitr)
+
+# knitting to pdf
+# rmarkdown::render(input = "analysis/analysis.Rmd", output_format = "pdf_document", output_dir = "output")
+F = rprojroot::is_rstudio_project$make_fix_file()
+palettedf <- tibble(paletteer::palettes_d_names)
+# filter(.data = palettedf, length > 10 & type == "qualitative")
+knitr::opts_chunk$set(echo = FALSE, include = TRUE, eval = TRUE, warning = FALSE, message = FALSE, fig.retina = 2, fig.width = 8, fig.height = 6, out.width = "100%")
+```
+
+
+```{r functions, include=FALSE}
+# This is a function to save the figures
+plot_path = F("output/")
+pltsave_func <- function(plot, plot_path, width, height){
+  ggsave(
+      filename = paste0(deparse(substitute(plot)), ".png"),
+      plot = plot, 
+      path = plot_path,
+      width = width,
+      height = height)
+  plot(plot)
+}
+```
+
+```{r df-import, include=FALSE}
+# Importing data
+
+skin <- read_csv("data/forr_reflectance.csv", 
+    col_types = cols(l = col_factor(levels = c("F", 
+        "R", "L", "H")), fp = col_factor(levels = c("South_Asian", 
+        "East_Asian", "Northern_European", 
+        "Southern European", "Afr_Eur", "African"))))
+
+head(skin)
+
+```
+
+
+```{r df-pivot}
+
+skin_long <- pivot_longer(skin, starts_with("W"), names_to = "wavelength", values_to = "reflectance")%>% 
+  mutate(wavelength = as.numeric(str_remove(wavelength, "\\D+")),
+         population = fct_collapse(fp, Asian = c("South_Asian", "East_Asian"),
+                                   European = c("Northern_European", "Southern European")))
+
+
+skin_long
+
+```
+
+```{r df-filter}
+
+df_plot <- skin_long %>%
+  drop_na() %>%
+  filter(reflectance>2 & l == "R") %>% 
+  group_by(id, population, wavelength) %>% 
+  mutate(median = median(reflectance))
+  
+```
+
+```{r}
+
+df_plot %>% 
+  ungroup() %>% 
+  summarise(count = n_distinct(id))
+```
+
+
+```{r plt-skin}
+
+ggplot(df_plot, aes(wavelength, median, group=id, color=cmi)) + 
+  geom_line() +
+  facet_wrap(~population, ncol = 2) +
+  scale_color_distiller(palette = 'YlOrRd') +
+  expand_limits(y = 0)
+
+```
+

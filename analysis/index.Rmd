@@ -1,5 +1,5 @@
 ---
-title: "Home"
+title: "SIGGRAPH 2022"
 site: workflowr::wflow_site
 output:
   workflowr::wflow_html:
@@ -8,4 +8,4 @@ editor_options:
   chunk_output_type: console
 ---
 
-Welcome to my research website.
+This website covers the analyses for our 2022 SIGGRAPH submission. See [reflectance](reflectance.html) analyses.
