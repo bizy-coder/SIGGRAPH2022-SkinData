@@ -15,7 +15,10 @@ library(tidyverse)
 library(knitr)
 library(scales)
 library(patchwork)
+library(ggbeeswarm)
+library(ggridges)
 library(ggmulti)
+library(paletteer)
 
 # knitting to pdf
 # rmarkdown::render(input = "analysis/analysis.Rmd", output_format = "pdf_document", output_dir = "output")
@@ -26,7 +29,7 @@ knitr::opts_chunk$set(echo = FALSE, include = TRUE, eval = TRUE, warning = FALSE
 ```
 
 
-```{r functions, include=FALSE}
+```{r functions, eval=FALSE, include=FALSE}
 # This is a function to save the figures
 plot_path = F("output/")
 pltsave_func <- function(plot, plot_path, width, height){
@@ -43,18 +46,23 @@ pltsave_func <- function(plot, plot_path, width, height){
 ```{r df-import, include=FALSE}
 # Importing data
 
-skin <- read_csv("data/forr_reflectance.csv", 
-    col_types = cols(l = col_factor(levels = c("F", 
-        "R", "L", "H")), fp = col_factor(levels = c("South_Asian", 
-        "East_Asian", "Northern_European", 
-        "Southern European", "Afr_Eur", "African"))))
+# skin <- read_csv(F("data/forr_reflectance.csv"), 
+#     col_types = cols(l = col_factor(levels = c("F", 
+#         "R", "L", "H")), fp = col_factor(levels = c("South_Asian", 
+#         "East_Asian", "Northern_European", 
+#         "Southern European", "Afr_Eur", "African"))))
+
+
+skin <- read_csv(F("data/forr_reflectance.csv")) %>% 
+  mutate(l = factor(l, levels = c("F","R", "L", "H")),
+         fp = factor(fp, levels = c("South_Asian", "East_Asian", "Northern_European", "Southern European", "Afr_Eur", "African")))
 
 head(skin)
 
 ```
 
 
-```{r df-pivot}
+```{r df-pivot, include=FALSE}
 
 skin_long <- pivot_longer(skin, starts_with("W"), names_to = "wavelength", values_to = "reflectance")%>% 
   mutate(wavelength = as.numeric(str_remove(wavelength, "\\D+")),
@@ -74,11 +82,19 @@ df_plot <- skin_long %>%
   filter(reflectance>2 & l == "F") %>% 
   group_by(id, population, wavelength) %>% 
   mutate(median = median(reflectance)) %>% 
-  mutate(mean = mean(reflectance))
+  mutate(mean = mean(reflectance)) %>% 
+  mutate(fitz = case_when(cmi <= 25 & population == "European" ~ "Type 1",
+                          cmi <= 30 & population == "European" ~ "Type 2",
+                          cmi <= 35 & population == "European" ~ "Type 3",
+                          cmi <= 40 ~ "Type 4",
+                          cmi <= 80 ~ "Type 5",
+                          TRUE ~ "Type 6"),
+         fitz = factor(fitz, levels = c("Type 1", "Type 2", "Type 3", "Type 4", "Type 5", "Type 6"))) %>% 
+  distinct(id,cmi, .keep_all = TRUE)
   
 ```
 
-```{r}
+```{r count}
 
 df_plot %>% 
   ungroup() %>% 
@@ -108,32 +124,61 @@ ggplot(df_plot, aes(wavelength, median, group=id, color=cmi)) +
 
 ```
 
-```{r}
-
+```{r df-hist}
 # df_plot %>% 
 #   group_by(population) %>% 
 #   summarise(min = min(cmi), max = max(cmi))
   
-df_hist <- df_plot %>%
-  mutate(fitz = case_when(cmi <= 25 ~ "Type 1",
-                          cmi <= 30 ~ "Type 2",
-                          cmi <= 35 ~ "Type 3",
-                          cmi <= 40 ~ "Type 4",
-                          cmi <= 80 ~ "Type 5",
-                          TRUE ~ "Type 6"),
-         fitz = factor(fitz, levels = c("Type 1", "Type 2", "Type 3", "Type 4", "Type 5", "Type 6")),
-         population = factor(population, levels = c("African", "Afr_Eur", "Asian", "African")))
+df_hist <- df_plot %>% 
+  ungroup() %>% 
+  select(-c(wavelength, reflectance)) %>% 
+  distinct(id, cmi, .keep_all = TRUE) %>% 
+  group_by(population)
 
+```
+
+
+```{r plt-hist, fig.height=3, fig.width=5}
 # regular histogram - melanin index
 ggplot(df_hist, aes(x=cmi, fill=population, color=population)) +
   geom_histogram(position="identity", alpha=0.5) +
   theme_classic()
 
 # regular histogram fitzpatrick scale
-ggplot(df_hist, aes(x=as.numeric(fitz), fill=population, color=population)) +
-  geom_histogram(position="identity", alpha=0.5, bins = 6) +
+ggplot(df_hist, aes(x=fitz, fill=population, color=population)) +
+  geom_bar(alpha=0.5, position = position_dodge2(width=0.9, preserve = "single"), width = 1) +
   theme_classic()
 
+```
+
+```{r df-hist-facet, fig.height=5, fig.width=7}
+# df_plot %>% 
+#   group_by(population) %>% 
+#   summarise(min = min(cmi), max = max(cmi))
+  
+
+# regular histogram - melanin index
+p1 <- ggplot(df_hist, aes(x=cmi, fill=population, color=population)) +
+  geom_histogram(position="identity", alpha=0.5, binwidth = 5) +
+  theme_classic() + facet_grid(population ~., scales = "free")
+
+# regular histogram fitzpatrick scale
+p2 <- ggplot(df_hist, aes(x=as.numeric(fitz), fill=population, color=population)) +
+  geom_histogram(position="identity", alpha=0.5, bins = 6) +
+  theme_classic()+ facet_grid(population ~., scales = "free") +
+  theme(legend.position = "none")
+
+# regular histogram fitzpatrick scale
+p2 <- ggplot(df_hist, aes(x=fitz, fill=population, color=population)) +
+  geom_bar(alpha=0.5, width = 1) +
+  theme_classic()+ facet_grid(population ~., scales = "free") +
+  theme(legend.position = "none")
+
+p2 + p1
+
+```
+
+```{r df-hist-multi, eval=FALSE, include=FALSE}
 # Density 
 
 # Histogram by Melanin index grouped by fitzpatrick
@@ -182,8 +227,102 @@ ggplot(df_hist,
   # it is equivalent to call `geom_density()`
   geom_density_(alpha = 0.3) + 
   scale_fill_brewer(palette = "Set3") + 
-  labs(caption = "Figure 4")
+  labs(caption = "Figure 4") +
+  theme_classic()
 
 ```
 
+
+```{r df-dot, eval=FALSE, include=FALSE}
+
+# by population on x axis
+
+df_hist %>% 
+  mutate(population = fct_reorder(population, cmi, .fun = "max")) %>% 
+  ggplot(., 
+            mapping = aes(x = reorder(population, cmi), 
+                          y = cmi, 
+                          fill = fitz,
+                          color = fitz)) +
+  geom_boxplot(width = 0.7, 
+               size = 0.4,
+               alpha = 0.1,
+               position = position_dodge(0.8)
+               ) +
+  geom_quasirandom(dodge = 0.7,
+                   show.legend = TRUE,
+                   alpha = 0.8) +
+  # geom_point(position = position_jitterdodge(), alpha=0.1)+
+  theme_classic()
+
+
+# by fitzpatrick on x axis
+
+df_hist %>% 
+  ggplot(., 
+            mapping = aes(x = fitz, 
+                          y = cmi, 
+                          fill = population,
+                          color = population)) +
+  geom_boxplot(width = 0.5, 
+               size = 0.4,
+               alpha = 0.1,
+               position = position_dodge(0.8)
+               ) +
+  # geom_jitter() +
+  geom_quasirandom(dodge = 0.7,
+                   show.legend = TRUE,
+                   alpha = 0.4) +
+  theme_classic()
+
+
+```
+
+```{r eval=FALSE, include=FALSE}
+df_hist %>% 
+  mutate(population = fct_reorder(population, cmi, .fun = "max")) %>% 
+  ggplot(., 
+            mapping = aes(x = reorder(population, cmi), 
+                          y = cmi, 
+                          fill = fitz,
+                          color = fitz)) +
+  geom_boxplot(width = 0.5, 
+               size = 0.4,
+               alpha = 0.1,
+               position = position_dodge(0.8)
+               ) +
+  geom_point(position = position_jitterdodge()) +
+  geom_quasirandom(dodge = 0.7,
+                   show.legend = TRUE,
+                   alpha = 0.1,
+                   size = 0.001) +
+  theme_classic()+
+labs(x = "...", y = "...") 
+```
+
+
+```{r, eval=FALSE, include=FALSE}
+
+# ridge plot
+
+ggplot(df_hist, 
+       aes(x = cmi, 
+           y = fitz, 
+           fill = population)) +
+  geom_density_ridges(alpha = 0.4, scale = 1) + 
+  theme_ridges()
+
+```
+
+```{r, eval=FALSE, include=FALSE}
+
+# ridge plot
+
+ggplot(df_hist, 
+       aes(x = cmi, 
+           y = fitz, 
+           fill = population)) +
+  geom_violin()
+
+```
 
