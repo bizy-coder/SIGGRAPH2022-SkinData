@@ -121,33 +121,57 @@ df_hist <- df_plot %>%
                           cmi <= 40 ~ "Type 4",
                           cmi <= 80 ~ "Type 5",
                           TRUE ~ "Type 6"),
-         fitz = factor(fitz, levels = c("Type 1", "Type 2", "Type 3", "Type 4", "Type 5", "Type 6")))
+         fitz = factor(fitz, levels = c("Type 1", "Type 2", "Type 3", "Type 4", "Type 5", "Type 6")),
+         population = factor(population, levels = c("African", "Afr_Eur", "Asian", "African")))
 
+# regular histogram - melanin index
 ggplot(df_hist, aes(x=cmi, fill=population, color=population)) +
   geom_histogram(position="identity", alpha=0.5) +
   theme_classic()
 
+# regular histogram fitzpatrick scale
 ggplot(df_hist, aes(x=as.numeric(fitz), fill=population, color=population)) +
   geom_histogram(position="identity", alpha=0.5, bins = 6) +
   theme_classic()
 
 # Density 
 
-g <- ggplot(df_hist, 
+# Histogram by Melanin index grouped by fitzpatrick
+ggplot(df_hist, 
             mapping = aes(x = fitz, 
                           y = cmi, 
                           fill = population)) + 
   geom_histogram_(as.mix = FALSE,
                   scale.y = "group",
                   alpha = 0.5,
-                  binwidth = 3) + 
-  labs(caption = "Figure 2")
+                  # binwidth = 5,
+                  prop = 0.8) + 
+  labs(caption = "Figure 2") +
+  theme_classic()
 
-g + geom_density_(as.mix = TRUE, 
+
+# histogram by melanin index grouped by population
+
+df_hist %>% 
+  mutate(population = fct_reorder(population, cmi, .fun = "max")) %>% 
+  ggplot(., 
+            mapping = aes(x = reorder(population, cmi), 
+                          y = cmi, 
+                          fill = fitz)) + 
+  geom_histogram_(as.mix = FALSE,
+                  scale.y = "group",
+                  alpha = 0.5,
+                  # binwidth = 5,
+                  prop = 0.8) + 
+  labs(caption = "Figure 2") +
+  theme_classic()
+
+g + geom_density_(as.mix = FALSE, 
                 positive = FALSE, 
-                alpha = 0.2,
+                alpha = 0.5,
                 scale.y = "group",
-                postition = "stack_") + 
+                postition = "stack_",
+                prop = 0.9) + 
   labs(caption = "Figure 3") +
   coord_flip() +
   theme_classic()
