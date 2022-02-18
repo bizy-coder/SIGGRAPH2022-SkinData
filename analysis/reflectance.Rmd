@@ -147,11 +147,12 @@ ggplot(df_hist, aes(x=cmi, fill=population, color=population)) +
 # regular histogram fitzpatrick scale
 ggplot(df_hist, aes(x=fitz, fill=population, color=population)) +
   geom_bar(alpha=0.5, position = position_dodge2(width=0.9, preserve = "single"), width = 1) +
-  theme_classic()
+  theme_classic() +
+  xlab("Fitzpatrick Skin Phototype")
 
 ```
 
-```{r df-hist-facet, fig.height=5, fig.width=7}
+```{r df-hist-facet, fig.height=4, fig.width=8}
 # df_plot %>% 
 #   group_by(population) %>% 
 #   summarise(min = min(cmi), max = max(cmi))
@@ -172,7 +173,13 @@ p2 <- ggplot(df_hist, aes(x=as.numeric(fitz), fill=population, color=population)
 p2 <- ggplot(df_hist, aes(x=fitz, fill=population, color=population)) +
   geom_bar(alpha=0.5, width = 1) +
   theme_classic()+ facet_grid(population ~., scales = "free") +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  xlab("Fitzpatrick Skin Phototype") +
+  theme(
+  strip.background = element_blank(),
+  strip.text.y = element_blank()
+)
+
 
 p2 + p1
 
