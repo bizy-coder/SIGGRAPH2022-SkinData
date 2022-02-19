@@ -19,6 +19,7 @@ library(ggbeeswarm)
 library(ggridges)
 library(ggmulti)
 library(paletteer)
+library("stringr")
 
 # knitting to pdf
 # rmarkdown::render(input = "analysis/analysis.Rmd", output_format = "pdf_document", output_dir = "output")
@@ -101,24 +102,33 @@ df_plot %>%
   summarise(count = n_distinct(id))
 ```
 
-
 ```{r plt-skin}
 
+
+population_labels <- c(
+  Asian = ">95% Asian",
+  African = ">95% African",
+  Afr_Eur = ">95% combined European-African",
+  European = ">95% European"
+)
 
 ggplot(df_plot, aes(wavelength, median, group=id, color=cmi)) +
 # ggplot(df_plot, aes(wavelength, mean, group=id, color=cmi)) + 
   geom_line() +
-  facet_wrap(~population, ncol = 2) +
+  facet_wrap(~population, ncol = 2, labeller = labeller(population = population_labels)) +
   # scale_color_gradient2(low = "blue", high = "red", mid = "cyan")
   # scale_color_gradient(low = "#f7eed7", high = "#42230c") +
   # scale_color_distiller(palette = 'YlOrRd') +
-  scale_color_gradientn(colours = c("#fbf7ec", "#a15c33" , "#42230c"),
-                        values = rescale(x= c(20, 40, 50)),
+  scale_color_gradientn(colours = c("#42230c", "#a15c33" , "#fbf7ec"),
+                        values = rescale(x= c(50, 40, 20)),
                         oob = squish,
                         limits = c(20, 100)) +
   expand_limits(y = 0) +
   theme_classic() +
+  
   ylab("Percent Reflectance of Skin") +
+  xlab("Wavelength") +
+  guides(color = guide_colorbar(reverse = TRUE)) +
   labs(color = "Melanin Index")
   
 
@@ -152,40 +162,93 @@ ggplot(df_hist, aes(x=fitz, fill=population, color=population)) +
 
 ```
 
+```{r hist-setup}
+# Method for removing baseline color in a ggplot histogram from https://stackoverflow.com/questions/57128090/remove-baseline-color-for-geom-histogram
+StatBin2 <- ggproto(
+  "StatBin2", 
+  StatBin,
+  compute_group = function (data, scales, binwidth = NULL, bins = NULL, 
+                            center = NULL, boundary = NULL, 
+                            closed = c("right", "left"), pad = FALSE, 
+                            breaks = NULL, origin = NULL, right = NULL, 
+                            drop = NULL, width = NULL) {
+    if (!is.null(breaks)) {
+      if (!scales$x$is_discrete()) {
+        breaks <- scales$x$transform(breaks)
+      }
+      bins <- ggplot2:::bin_breaks(breaks, closed)
+    }
+    else if (!is.null(binwidth)) {
+      if (is.function(binwidth)) {
+        binwidth <- binwidth(data$x)
+      }
+      bins <- ggplot2:::bin_breaks_width(scales$x$dimension(), binwidth, 
+                                         center = center, boundary = boundary, 
+                                         closed = closed)
+    }
+    else {
+      bins <- ggplot2:::bin_breaks_bins(scales$x$dimension(), bins, 
+                                        center = center, boundary = boundary, 
+                                        closed = closed)
+    }
+    res <- ggplot2:::bin_vector(data$x, bins, weight = data$weight, pad = pad)
+
+    # Only drop the bars if they are not in between others
+    res <- res[res$x <= max(res[res$count > 0, "x"]), ]
+    res <- res[res$x >= min(res[res$count > 0, "x"]), ]
+               
+    res
+  })
+```
+
 ```{r df-hist-facet, fig.height=4, fig.width=8}
 # df_plot %>% 
 #   group_by(population) %>% 
 #   summarise(min = min(cmi), max = max(cmi))
   
+# regular histogram fitzpatrick scale
+p1 <- ggplot(df_hist, aes(x=fitz, fill=population, color=population)) +
+  geom_bar(alpha=0.5, width = 1) +
+  theme_classic()+ facet_grid(population ~., scales = "free") +
+  xlab("Fitzpatrick Skin Phototype") +
+  ylab("Count") +
 
+  theme(
+    strip.background = element_blank(),
+    strip.text.y = element_blank(),
+    # legend.position = "left"
+    legend.position = "none"
+  ) 
+  #  scale_fill_discrete(name = "Test", labels = c(">95% Asian", ">95% African",">95% combined\nEuropean-African", ">95% European")) +
+  # guides(fill=guide_legend("Ancestry"),color='none')
+   
 # regular histogram - melanin index
-p1 <- ggplot(df_hist, aes(x=cmi, fill=population, color=population)) +
-  geom_histogram(position="identity", alpha=0.5, binwidth = 5) +
+p2 <- ggplot(df_hist, aes(x=cmi, fill=population, color=population)) +
+  geom_histogram(position="identity", alpha=0.5, binwidth = 5, stat = StatBin2) +
   theme_classic() + facet_grid(population ~., scales = "free") +
+   # geom_hline(yintercept=0, colour="white", size=1) +
   xlab("Melanin Index") +
-  labs(color = "Ancestry", fill = "Ancestry")
+  theme(
+    strip.background = element_blank(),
+    strip.text.y = element_blank(),
+    axis.title.y = element_blank(),
+    # legend.title = element_blank(),
+    legend.margin=margin(t=0,l=0,b=0.0,r=0, unit='cm'),
+    # legend.spacing.y = unit(3.0, 'cm')
+    # legend.position = "none"
+  ) +
+   scale_fill_discrete(name = "Test", labels = c(">95% Asian", ">95% African",">95% combined\nEuropean-African", ">95% European")) +
+  guides(fill=guide_legend("Ancestry"),color='none')
 
 # regular histogram fitzpatrick scale
-# p2 <- ggplot(df_hist, aes(x=as.numeric(fitz), fill=population, color=population)) +
+# p1 <- ggplot(df_hist, aes(x=as.numeric(fitz), fill=population, color=population)) +
 #   geom_histogram(position="identity", alpha=0.5, bins = 6) +
 #   theme_classic()+ facet_grid(population ~., scales = "free") +
 #   theme(legend.position = "none") +
 #   xlab("Melanin Index") +
 #   labs(color = "Ancestry", fill = "Ancestry")
 
-# regular histogram fitzpatrick scale
-p2 <- ggplot(df_hist, aes(x=fitz, fill=population, color=population)) +
-  geom_bar(alpha=0.5, width = 1) +
-  theme_classic()+ facet_grid(population ~., scales = "free") +
-  theme(legend.position = "none") +
-  xlab("Fitzpatrick Skin Phototype") +
-  theme(
-  strip.background = element_blank(),
-  strip.text.y = element_blank()
-)
-
-
-p2 + p1
+p1 + p2
 
 ```
 
@@ -208,7 +271,7 @@ ggplot(df_hist,
 
 # histogram by melanin index grouped by population
 
-df_hist %>% 
+g <- df_hist %>% 
   mutate(population = fct_reorder(population, cmi, .fun = "max")) %>% 
   ggplot(., 
             mapping = aes(x = reorder(population, cmi), 
