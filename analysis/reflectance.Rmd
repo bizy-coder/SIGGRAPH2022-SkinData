@@ -27,6 +27,21 @@ F = rprojroot::is_rstudio_project$make_fix_file()
 palettedf <- tibble(paletteer::palettes_d_names)
 # filter(.data = palettedf, length > 10 & type == "qualitative")
 knitr::opts_chunk$set(echo = FALSE, include = TRUE, eval = TRUE, warning = FALSE, message = FALSE, fig.retina = 2, fig.width = 8, fig.height = 6, out.width = "100%")
+
+
+# skin <- read_csv(F("data/complete_skin_data.csv")) %>% 
+#   mutate(l = factor(`Loc.`, levels = c("F","R", "L", "H"))) %>% 
+#   pivot_longer(starts_with("W"), names_to = "wavelength", values_to = "reflectance")%>% 
+#   mutate(wavelength = as.numeric(str_remove(wavelength, "\\D+")),
+#          CMI = as.numeric(CMI)) %>% 
+#   mutate(population = factor(case_when(CEU >= 0.95 ~ "European",
+#                           CHB + GIH + JPT >= 0.95 ~ "Asian",
+#                           YRI + LWK + MKK >= 0.95 ~ "African",
+#                           YRI + CEU + TSI + YRI + MKK >= 0.95 ~ "African-European",
+#                           TRUE ~ "Other"))) %>% 
+#   select(ID, l, "MI", "CMI", wavelength, reflectance, population) %>% 
+#   rename(id = ID, mi = MI, cmi = CMI)
+
 ```
 
 
@@ -104,13 +119,17 @@ df_plot %>%
 
 ```{r plt-skin}
 
+table(df_plot$population)
+
 
 population_labels <- c(
-  Asian = ">95% Asian",
-  African = ">95% African",
-  Afr_Eur = ">95% combined European-African",
-  European = ">95% European"
+  Asian = ">95% Asian (n = 71)",
+  African = ">95% African (n = 25)",
+  Afr_Eur = ">95% combined European-African (n = 110)",
+  European = ">95% European (n = 171)"
 )
+library(dplyr)
+
 
 ggplot(df_plot, aes(wavelength, median, group=id, color=cmi)) +
 # ggplot(df_plot, aes(wavelength, mean, group=id, color=cmi)) + 
@@ -129,7 +148,9 @@ ggplot(df_plot, aes(wavelength, median, group=id, color=cmi)) +
   ylab("Percent Reflectance of Skin") +
   xlab("Wavelength") +
   guides(color = guide_colorbar(reverse = TRUE)) +
-  labs(color = "Melanin Index")
+  labs(color = "Melanin Index") +
+    annotate("rect", xmin = 640, xmax = 670, ymin = 0, ymax =70, 
+           alpha = 0.3, fill = "#ff0000")
   
 
 ```
@@ -233,11 +254,11 @@ p2 <- ggplot(df_hist, aes(x=cmi, fill=population, color=population)) +
     strip.text.y = element_blank(),
     axis.title.y = element_blank(),
     # legend.title = element_blank(),
-    legend.margin=margin(t=0,l=0,b=0.0,r=0, unit='cm'),
-    # legend.spacing.y = unit(3.0, 'cm')
+    legend.margin=margin(t=0,l=-0.5,b=0.0,r=0, unit='cm'),
+    # legend.spacing.y = unit(0.3, 'cm')
     # legend.position = "none"
   ) +
-   scale_fill_discrete(name = "Test", labels = c(">95% Asian", ">95% African",">95% combined\nEuropean-African", ">95% European")) +
+   scale_fill_discrete(name = "Test", labels = c(">95% Asian\n(n = 71)", ">95% European\n(n = 171)",">95% combined\nEuropean-African\n(n = 110)", ">95% African\n(n = 25)")) +
   guides(fill=guide_legend("Ancestry"),color='none')
 
 # regular histogram fitzpatrick scale
@@ -249,6 +270,7 @@ p2 <- ggplot(df_hist, aes(x=cmi, fill=population, color=population)) +
 #   labs(color = "Ancestry", fill = "Ancestry")
 
 p1 + p2
+
 
 ```
 
