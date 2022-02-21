@@ -258,7 +258,7 @@ p2 <- ggplot(df_hist, aes(x=cmi, fill=population, color=population)) +
   theme(
     # strip.background = element_blank(),
     # strip.text.y = element_blank(),
-    # axis.title.y = element_blank(),
+    axis.title.y = element_blank(),
     # legend.title = element_blank(),
     # legend.margin=margin(t=0,l=-0.5,b=0.0,r=0, unit='cm'),
     # legend.spacing.y = unit(0.3, 'cm')
@@ -290,7 +290,8 @@ p2 <- g
 #   xlab("Melanin Index") +
 #   labs(color = "Ancestry", fill = "Ancestry")
 
-p1 + p2
+p1 + p2 + 
+  plot_layout(widths = c(4, 5))
 
 
 ```
