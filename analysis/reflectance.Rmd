@@ -242,24 +242,45 @@ p1 <- ggplot(df_hist, aes(x=fitz, fill=population, color=population)) +
   ) 
   #  scale_fill_discrete(name = "Test", labels = c(">95% Asian", ">95% African",">95% combined\nEuropean-African", ">95% European")) +
   # guides(fill=guide_legend("Ancestry"),color='none')
+
+supp.labs <- c("Asian\n(n = 71)", "European\n(n = 171)","European-African\n(n = 110)", "African\n(n = 25)")
+names(supp.labs) <-c("Asian", "European", "Afr_Eur", "African")
+
    
 # regular histogram - melanin index
 p2 <- ggplot(df_hist, aes(x=cmi, fill=population, color=population)) +
   geom_histogram(position="identity", alpha=0.5, binwidth = 5, stat = StatBin2) +
-  theme_classic() + facet_grid(population ~., scales = "free") +
+  theme_classic() + 
+  facet_grid(population ~., scales = "free", 
+             labeller = labeller(population = supp.labs)) +
    # geom_hline(yintercept=0, colour="white", size=1) +
   xlab("Melanin Index") +
   theme(
-    strip.background = element_blank(),
-    strip.text.y = element_blank(),
-    axis.title.y = element_blank(),
+    # strip.background = element_blank(),
+    # strip.text.y = element_blank(),
+    # axis.title.y = element_blank(),
     # legend.title = element_blank(),
-    legend.margin=margin(t=0,l=-0.5,b=0.0,r=0, unit='cm'),
+    # legend.margin=margin(t=0,l=-0.5,b=0.0,r=0, unit='cm'),
     # legend.spacing.y = unit(0.3, 'cm')
-    # legend.position = "none"
-  ) +
-   scale_fill_discrete(name = "Test", labels = c(">95% Asian\n(n = 71)", ">95% European\n(n = 171)",">95% combined\nEuropean-African\n(n = 110)", ">95% African\n(n = 25)")) +
-  guides(fill=guide_legend("Ancestry"),color='none')
+    # strip.text.y = element_text(angle = 0),
+    legend.position = "none"
+  ) 
+
+
+g <- ggplot_gtable(ggplot_build(p2))
+stripr <- which(grepl('strip-r', g$layout$name))
+fills <- c("#F8766D", "#7CAE00", "#00BFC4", "#C77CFF")
+k <- 1
+for (i in stripr) {
+j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+k <- k+1
+}
+
+p2 <- g
+# grid::grid.draw(g)
+
+# plot(g)
 
 # regular histogram fitzpatrick scale
 # p1 <- ggplot(df_hist, aes(x=as.numeric(fitz), fill=population, color=population)) +
