@@ -59,6 +59,8 @@ pltsave_func <- function(plot, plot_path, width, height){
 }
 ```
 
+
+
 ```{r df-import, include=FALSE}
 # Importing data
 
@@ -91,7 +93,7 @@ skin_long
 
 ```
 
-```{r df-filter}
+```{r df-filter, include=FALSE}
 
 df_plot <- skin_long %>%
   drop_na() %>%
@@ -110,13 +112,15 @@ df_plot <- skin_long %>%
   
 ```
 
-```{r count}
+```{r count, include=FALSE}
 
 df_plot %>% 
   ungroup() %>% 
   summarise(count = n_distinct(id))
 ```
 
+
+# Skin reflectance plots
 ```{r plt-skin}
 
 table(df_plot$population)
@@ -155,7 +159,8 @@ ggplot(df_plot, aes(wavelength, median, group=id, color=cmi)) +
 
 ```
 
-```{r df-hist}
+
+```{r df-hist, include=FALSE}
 # df_plot %>% 
 #   group_by(population) %>% 
 #   summarise(min = min(cmi), max = max(cmi))
@@ -169,6 +174,9 @@ df_hist <- df_plot %>%
 ```
 
 
+# M-index vs. fitzpatrick
+
+## Fitzpatrick
 ```{r plt-hist, fig.height=3, fig.width=5}
 # regular histogram - melanin index
 ggplot(df_hist, aes(x=cmi, fill=population, color=population)) +
@@ -222,6 +230,7 @@ StatBin2 <- ggproto(
   })
 ```
 
+## Combined
 ```{r df-hist-facet, fig.height=4, fig.width=8}
 # df_plot %>% 
 #   group_by(population) %>% 
